@@ -89,33 +89,36 @@ class GeneratorCIFAR(torch.nn.Module):
         super(GeneratorCIFAR, self).__init__()
         self.capacity = capacity
 
-        self.embed = torch.nn.Linear(seed_size, capacity*7*7, bias=False)
+        self.embed = torch.nn.Linear(seed_size, capacity*8x8, bias=False)
 
         self.resnet = torch.nn.ModuleList()
-        for i in range(3): self.resnet.append(Block(capacity))
-        self.resnet.append(Upsample(capacity, capacity, 4))
+        for i in range(9): 
+            self.resnet.append(Block(capacity))
+        self.resnet.append(Upsample(capacity, capacity, 2))
+        self.resnet.append(Upsample(capacity, capacity // 2, 2)) # change to 32 x 32
 
-        self.image = torch.nn.Conv2d(capacity, 1, 3, padding=1, bias=True)
-        self.bias = torch.nn.Parameter(torch.Tensor(1,28,28))
+        self.image = torch.nn.Conv2d(capacity //2, 3, 3, padding=1, bias=True)
+        self.bias = torch.nn.Parameter(torch.Tensor(3, 32, 32))
 
         for name, parm in self.named_parameters():
             if name.endswith('weight'): torch.nn.init.normal_(parm, 0, .05)
             if name.endswith('bias'): torch.nn.init.constant_(parm, 0.0)
 
     def forward(self, s):
-        zx = F.relu(self.embed(s).view(-1,self.capacity,7,7))
+        zx = F.relu(self.embed(s).view(-1,self.capacity,8, 8))
         for layer in self.resnet: zx = layer(zx)
-        return torch.sigmoid(self.image(zx) + self.bias[None,:,:,:])
+        return torch.tanh(self.image(zx) + self.bias[None,:,:,:])
 
 class DiscriminatorCIFAR(torch.nn.Module):
     def __init__(self, capacity=128, weight_scale=.01):
         super(DiscriminatorCIFAR, self).__init__()
         self.capacity = capacity
 
-        self.embed = torch.nn.Conv2d(1, capacity, 3, padding=1, bias=False)
+        self.embed = torch.nn.Conv2d(3, capacity, 3, padding=1, bias=False)
 
         self.resnet = torch.nn.ModuleList()
-        self.resnet.append(DBlock(capacity, stride=4))
+        self.resnet.append(DBlock(capacity, stride=2))
+        self.resnet.append(DBlock(capacity, stride=2))
         for i in range(3): self.resnet.append(DBlock(capacity))
 
         self.out = torch.nn.Linear(capacity, 1, bias=True)
