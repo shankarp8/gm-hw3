@@ -89,7 +89,7 @@ class GeneratorCIFAR(torch.nn.Module):
         super(GeneratorCIFAR, self).__init__()
         self.capacity = capacity
 
-        self.embed = torch.nn.Linear(seed_size, capacity*8x8, bias=False)
+        self.embed = torch.nn.Linear(seed_size, capacity*8*8, bias=False)
 
         self.resnet = torch.nn.ModuleList()
         for i in range(9): 
